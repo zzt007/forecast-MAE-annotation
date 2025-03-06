@@ -1,4 +1,5 @@
-<<<<<<< HEAD
+This repr forked from forecast-MAE, 2023 ICCV 
+
 <br />
 <p align="center">
   <h2 align="center">Forecast-MAE: Self-supervised Pre-training for Motion Forecasting with Masked Autoencoders</h1>
@@ -205,7 +206,3 @@ If you found this repository useful, please consider citing our work:
   year={2023}
 }
 ```
-=======
-# forecast-MAE-annotation
-This repo forked from forecast-MAE, 2023 ICCV, add the annotations
->>>>>>> 6199daf999aa26c2f9e83227150c2487861b5666

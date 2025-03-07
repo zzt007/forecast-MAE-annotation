@@ -12,11 +12,11 @@ from src.utils.ray_utils import ActorHandle, ProgressBar
 ray.init(num_cpus=16)
 
 
+# 找到给定数据目录下的所有以parquet后缀的文件，并以列表的形式返回。
 def glob_files(data_root: Path, mode: str):
     file_root = data_root / mode
     scenario_files = list(file_root.rglob("*.parquet"))
     return scenario_files
-
 
 @ray.remote
 def preprocess_batch(extractor: Av2Extractor, file_list: List[Path], pb: ActorHandle):

@@ -24,7 +24,7 @@ class AgentEmbeddingLayer(nn.Module):
 
         self.embed = ConvTokenizer(in_chans, embed_dim)
         self.num_levels = len(depths)
-        self.num_features = [int(embed_dim * 2**i) for i in range(self.num_levels)]
+        self.num_features = [int(embed_dim * 2**i) for i in range(self.num_levels)] # 分别embed_dim * 1, 2, 4 
         self.out_indices = out_indices
 
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, sum(depths))]
@@ -60,7 +60,7 @@ class AgentEmbeddingLayer(nn.Module):
         self.fpn_conv = nn.Conv1d(n, n, 3, padding=1)
 
     def forward(self, x):
-        """x: [B, C, T]"""
+        """x: [B, C, T]，实际上就是[B, C, L]"""
         x = self.embed(x)
 
         out = []

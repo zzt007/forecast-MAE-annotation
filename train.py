@@ -13,10 +13,10 @@ from pytorch_lightning.callbacks import (
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 
 
-@hydra.main(version_base=None, config_path="conf", config_name="config")
+@hydra.main(version_base=None, config_path="conf", config_name="config") # 允许你通过命令行参数覆盖配置文件中的值，会解析命令行参数，并将这些参数与配置文件中的内容合并。
 def main(conf):
     pl.seed_everything(conf.seed, workers=True)
-    output_dir = HydraConfig.get().runtime.output_dir
+    output_dir = HydraConfig.get().runtime.output_dir # 返回当前运行时的输出目录。
 
     if conf.wandb != "disable":
         logger = WandbLogger(
@@ -38,9 +38,9 @@ def main(conf):
             save_top_k=conf.save_top_k,
             save_last=True,
         ),
-        RichModelSummary(max_depth=1),
-        RichProgressBar(),
-        LearningRateMonitor(logging_interval="epoch"),
+        RichModelSummary(max_depth=1), # 提供模型结构的摘要信息，使用 rich 库进行美化输出。max_depth=1: 只显示模型的第一层结构，适用于大型模型时减少输出信息量
+        RichProgressBar(), #替换默认的进度条为更美观、信息更丰富的进度条
+        LearningRateMonitor(logging_interval="epoch"),# 监控并记录学习率的变化，方便后续分析和调试；logging_interval="epoch": 每个 epoch 结束时记录一次学习率。也可以设置为 "step" 来记录每个 batch 的学习率变化
     ]
 
     trainer = pl.Trainer(
@@ -57,6 +57,7 @@ def main(conf):
         sync_batchnorm=conf.sync_bn,
     )
 
+    # instantiate函数根据配置文件中的定义创建相应的对象
     model = instantiate(conf.model.target)
     datamodule = instantiate(conf.datamodule)
     trainer.fit(model, datamodule, ckpt_path=conf.checkpoint)

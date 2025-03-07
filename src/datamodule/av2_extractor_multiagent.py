@@ -47,7 +47,7 @@ class Av2ExtractorMultiAgent:
     def process(self, raw_path: str, agent_id: str = None):
         df, am, scenario_id = load_av2_df(raw_path)
         city = df.city.values[0]
-        agent_id = "AV"
+        agent_id = "AV" # 这里和single agent的preprocess不同，在single中，这里是指focal agent的track id；而AV指的是自车
 
         local_df = df[df["track_id"] == agent_id].iloc
         origin = torch.tensor(
@@ -67,13 +67,13 @@ class Av2ExtractorMultiAgent:
         object_category = torch.from_numpy(cur_df["object_category"].values).float()
         cur_pos = torch.from_numpy(cur_df[["position_x", "position_y"]].values).float()
 
-        scored_agents_mask = object_category > 1.5
+        scored_agents_mask = object_category > 1.5 # 在object_category中，有4类，FOCAL_TRACK，SCORED_TRACK，UNSCORED_TRACK，TRACK_FRAGMENT，分别对应数字3、2、1、0
         out_of_range = np.linalg.norm(cur_pos - origin, axis=1) > self.radius
         out_of_range[scored_agents_mask] = False  # keep all scored agents
 
         actor_ids = [aid for i, aid in enumerate(actor_ids) if not out_of_range[i]]
         av_idx = actor_ids.index(agent_id)
-        scored_agents_mask = scored_agents_mask[~out_of_range]
+        scored_agents_mask = scored_agents_mask[~out_of_range] # 只保留scored agents，即轨迹数据质量较好的智能体
         num_nodes = len(actor_ids)
 
         df = df[df["track_id"].isin(actor_ids)]

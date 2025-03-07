@@ -16,24 +16,27 @@ class ModelForecast(nn.Module):
         embed_dim=128,
         encoder_depth=4,
         num_heads=8,
-        mlp_ratio=4.0,
+        mlp_ratio=4.0, # MLP的隐层维度是输入维度的4倍，即缩放倍数
         qkv_bias=False,
         drop_path=0.2,
         future_steps: int = 60,
     ) -> None:
         super().__init__()
+        # agent的feature channels=4，分别是step-wise displacement(2), velocity difference(1), a padding flag(1)
         self.hist_embed = AgentEmbeddingLayer(
             4, embed_dim // 4, drop_path_rate=drop_path
         )
-        self.lane_embed = LaneEmbeddingLayer(3, embed_dim)
+        self.lane_embed = LaneEmbeddingLayer(3, embed_dim) # lane的feature channels=3，分别是coordinate(2), availability(1)，送入近似MiniPointNet的网络中提取lane embedding
 
+        # 对应论文中的PE=MLP([x,y,cos(theta),sin(theta)])，所以这里的input_dimension=4
         self.pos_embed = nn.Sequential(
             nn.Linear(4, embed_dim),
             nn.GELU(),
             nn.Linear(embed_dim, embed_dim),
         )
 
-        dpr = [x.item() for x in torch.linspace(0, drop_path, encoder_depth)]
+        dpr = [x.item() for x in torch.linspace(0, drop_path, encoder_depth)] # 在模型中设置不同层的dropout率
+        ''' 编码器部分,对应文中的几个transformer encoder块 '''
         self.blocks = nn.ModuleList(
             Block(
                 dim=embed_dim,
@@ -46,16 +49,19 @@ class ModelForecast(nn.Module):
         )
         self.norm = nn.LayerNorm(embed_dim)
 
-        self.actor_type_embed = nn.Parameter(torch.Tensor(4, embed_dim))
-        self.lane_type_embed = nn.Parameter(torch.Tensor(1, 1, embed_dim))
+        # 对应论文中说的element_type_embed
+        self.actor_type_embed = nn.Parameter(torch.Tensor(4, embed_dim)) # 4种actor类型，对应av2_data_utils.py中的OBJECT_TYPE_MAP_COMBINED，映射为4类；
+        self.lane_type_embed = nn.Parameter(torch.Tensor(1, 1, embed_dim)) # 这里是为了后面repeat(B,M,1),其中B是batch_size，M是lane segment的数量
 
-        self.decoder = MultimodalDecoder(embed_dim, future_steps)
+        ''' 解码器部分 '''
+        self.decoder = MultimodalDecoder(embed_dim, future_steps) # simpl 3 layer MLP，这个专门用来解码focal agent的,这个是有多模态6条轨迹输出的，因为评价指标都是用它来算
         self.dense_predictor = nn.Sequential(
             nn.Linear(embed_dim, 256), nn.ReLU(), nn.Linear(256, future_steps * 2)
-        )
+        ) # dense_predictor用来解码其他agent的，单条轨迹
 
         self.initialize_weights()
 
+    # 初始化定义的参数
     def initialize_weights(self):
         nn.init.normal_(self.actor_type_embed, std=0.02)
         nn.init.normal_(self.lane_type_embed, std=0.02)
@@ -85,7 +91,7 @@ class ModelForecast(nn.Module):
             [
                 data["x"],
                 data["x_velocity_diff"][..., None],
-                ~hist_padding_mask[..., None],
+                ~hist_padding_mask[..., None], # [..., None] 的作用是在张量的最后一个维度后插入一个新的维度，等价于torch.unsqueeze()
             ],
             dim=-1,
         )
@@ -94,7 +100,7 @@ class ModelForecast(nn.Module):
         hist_feat = hist_feat.view(B * N, L, D)
         hist_feat_key_padding = hist_key_padding_mask.view(B * N)
         actor_feat = self.hist_embed(
-            hist_feat[~hist_feat_key_padding].permute(0, 2, 1).contiguous()
+            hist_feat[~hist_feat_key_padding].permute(0, 2, 1).contiguous() # （B*N, L, D）->(B*N, D, L)
         )
         actor_feat_tmp = torch.zeros(
             B * N, actor_feat.shape[-1], device=actor_feat.device

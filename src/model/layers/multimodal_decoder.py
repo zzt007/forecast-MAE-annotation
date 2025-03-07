@@ -9,9 +9,11 @@ class MultimodalDecoder(nn.Module):
 
         self.embed_dim = embed_dim
         self.future_steps = future_steps
-
+        
+        # 这里的6是代表K条轨迹，K=6
         self.multimodal_proj = nn.Linear(embed_dim, 6 * embed_dim)
-
+        
+        # 位置预测头
         self.loc = nn.Sequential(
             nn.Linear(embed_dim, 256),
             nn.ReLU(),
@@ -19,6 +21,7 @@ class MultimodalDecoder(nn.Module):
             nn.ReLU(),
             nn.Linear(embed_dim, future_steps * 2),
         )
+        # 置信度预测头
         self.pi = nn.Sequential(
             nn.Linear(embed_dim, 256),
             nn.ReLU(),

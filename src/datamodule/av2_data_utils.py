@@ -40,7 +40,7 @@ LaneTypeMap = {
 
 
 def load_av2_df(scenario_file: Path):
-    scenario_id = scenario_file.stem.split("_")[-1]
+    scenario_id = scenario_file.stem.split("_")[-1] # 从scenario_file的文件名中提取场景ID，具体逻辑是取文件名主干部分（不带扩展名），按"_"分割后取最后一段。
     df = pd.read_parquet(scenario_file)
     static_map = ArgoverseStaticMap.from_json(
         scenario_file.parents[0] / f"log_map_archive_{scenario_id}.json"

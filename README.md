@@ -1,4 +1,4 @@
-This repr forked from forecast-MAE, 2023 ICCV 
+This repo forked from forecast-MAE, 2023 ICCV 
 
 <br />
 <p align="center">

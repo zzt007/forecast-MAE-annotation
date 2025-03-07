@@ -79,13 +79,14 @@ class ModelMAE(nn.Module):
         self.actor_type_embed = nn.Parameter(torch.Tensor(4, embed_dim))
         self.lane_type_embed = nn.Parameter(torch.Tensor(1, 1, embed_dim))
 
+        # 只有在预训练阶段才会有mask token,和encoder输出结果进行拼接，并一起送入解码器中解码重建
         self.lane_mask_token = nn.Parameter(torch.Tensor(1, 1, embed_dim))
         self.future_mask_token = nn.Parameter(torch.Tensor(1, 1, embed_dim))
         self.history_mask_token = nn.Parameter(torch.Tensor(1, 1, embed_dim))
 
         self.future_pred = nn.Linear(embed_dim, future_steps * 2)
         self.history_pred = nn.Linear(embed_dim, history_steps * 2)
-        self.lane_pred = nn.Linear(embed_dim, 20 * 2)
+        self.lane_pred = nn.Linear(embed_dim, 20 * 2) # 每个lane segment插值了20个点
 
         self.initialize_weights()
 
